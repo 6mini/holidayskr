@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='holidayskr',
-    version='0.1.0',
+    version='{{VERSION_PLACEHOLDER}}',
     author='Yoonmin Lee',
     author_email='real6mini@gmail.com',
     packages=find_packages(),
