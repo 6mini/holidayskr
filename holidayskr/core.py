@@ -1,45 +1,25 @@
+import requests
 from datetime import datetime, timedelta
 from korean_lunar_calendar import KoreanLunarCalendar
 
-# 양력 고정 공휴일
-FIXED_HOLIDAYS = [
-    '01-01', # 신정
-    '03-01', # 3·1절
-    '05-01', # 근로자의 날
-    '05-05', # 어린이날
-    '06-06', # 현충일
-    '08-15', # 광복절
-    '10-03', # 개천절
-    '10-09', # 한글날
-    '12-25', # 크리스마스
-]
 
-# 음력 고정 공휴일 (월, 일)
-LUNAR_HOLIDAYS = [
-    ('01', '01'), # 설날
-    ('04', '08'), # 석가탄신일
-    ('08', '15'), # 추석
-]
+def download_holiday_data(url, retries=50):
+    """GitHub에서 공휴일 데이터를 다운로드합니다. 실패 시 재시도."""
+    for attempt in range(retries):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()  # 성공 시 JSON 데이터 반환
+        except Exception as e:
+            print(f"Request error occurred: {e}, retrying {attempt + 1}/{retries}")
+    raise Exception("Reached maximum retry attempts. Data download failed.")
 
-# 특정 연도의 공휴일(대체 공휴일, 선거일 등): 매년 생기는 공휴일을 이곳에 추가합니다.
-YEAR_SPECIFIC_HOLIDAYS = {
-    2024: [
-        '02-12', # 대체 공휴일(설날)
-        '04-10', # 제22대 국회의원 선거일
-        '05-06', # 대체 공휴일(어린이날)
-    ],
-    2025: [
-        '03-03', # 대체 공휴일(3·1절)
-        '05-06', # 대체 공휴일(어린이날, 석가탄신일 중복 공휴일)
-    ],
-    2026: [
-        '03-02', # 대체 공휴일(3·1절)
-        '05-25', # 대체 공휴일(석가탄신일)
-        '06-08', # 대체 공휴일(현충일)
-        '08-17', # 대체 공휴일(광복절) 
-        '10-05', # 대체 공휴일(한글날)
-    ]
-}
+
+
+# GitHub에서 공휴일 데이터를 다운로드
+URL = "https://raw.githubusercontent.com/6mini/holidayskr/main/holidayskr.json"
+HOLIDAY_DATA = download_holiday_data(URL)
+
 
 def convert_lunar_to_solar(year, month, day, adjust=0):
     """음력 날짜를 양력 날짜로 변환합니다."""
@@ -48,23 +28,36 @@ def convert_lunar_to_solar(year, month, day, adjust=0):
     solar_date = datetime.strptime(calendar.SolarIsoFormat(), '%Y-%m-%d').date()
     return solar_date + timedelta(days=adjust)
 
-def get_fixed_and_specific_holidays(year):
-    """고정된 양력 공휴일과 연도별 특정 공휴일을 가져옵니다."""
-    fixed_holidays = [datetime(year, int(m), int(d)).date() for m, d in (md.split('-') for md in FIXED_HOLIDAYS)]
-    specific_holidays = [datetime.strptime(f"{year}-{md}", '%Y-%m-%d').date() for md in YEAR_SPECIFIC_HOLIDAYS.get(year, [])]
-    return fixed_holidays + specific_holidays
 
-def get_lunar_holidays(year):
-    """해당 연도의 음력 공휴일을 양력으로 변환하여 가져옵니다."""
-    holidays = []
-    for month, day in LUNAR_HOLIDAYS:
-        holidays.append(convert_lunar_to_solar(year, month, day))
-        if month in ['01', '08']:
-            holidays.extend([
-                convert_lunar_to_solar(year, month, day, adjust=-1),
-                convert_lunar_to_solar(year, month, day, adjust=1)
-            ])
-    return holidays
+def get_holidays(year):
+    """해당 연도의 모든 공휴일을 가져옵니다 (양력 고정, 음력 고정, 연도별 특정)."""
+    # 양력 고정 공휴일
+    fixed_holidays = [
+        (datetime.strptime(f"{year}-{holiday['date']}", '%Y-%m-%d').date(), holiday['name'])
+        for holiday in HOLIDAY_DATA['solar_holidays']
+    ]
+    
+    # 음력 고정 공휴일을 양력으로 변환
+    lunar_holidays = []
+    for holiday in HOLIDAY_DATA['lunar_holidays']:
+        month, day = holiday['date'].split('-')
+        solar_date = convert_lunar_to_solar(year, month, day)
+        lunar_holidays.append((solar_date, holiday['name']))
+        if month in ['01', '08']:  # 설날과 추석은 전날, 다음날도 공휴일 처리
+            lunar_holidays.append((solar_date - timedelta(days=1), holiday['name'] + " 전날"))
+            lunar_holidays.append((solar_date + timedelta(days=1), holiday['name'] + " 다음날"))
+    
+    # 연도별 특정 공휴일
+    specific_holidays = [
+        (datetime.strptime(f"{year}-{holiday['date']}", '%Y-%m-%d').date(), holiday['name'])
+        for holiday in HOLIDAY_DATA['year_specific_holidays'].get(str(year), [])
+    ]
+    
+    # 모든 공휴일을 날짜 기준으로 정렬
+    all_holidays = sorted(fixed_holidays + lunar_holidays + specific_holidays, key=lambda x: x[0])
+    
+    return all_holidays
+
 
 def is_holiday(date_str):
     """지정된 날짜가 공휴일인지 확인합니다."""
@@ -74,15 +67,17 @@ def is_holiday(date_str):
         raise ValueError("Invalid date format. Use 'YYYY-MM-DD'.")
 
     year = date.year
-    all_holidays = set(get_fixed_and_specific_holidays(year) + get_lunar_holidays(year))
+    all_holidays = get_holidays(year)
     
-    return date in all_holidays
+    return any(holiday[0] == date for holiday in all_holidays)
+
 
 def today_is_holiday():
     """현재 날짜가 공휴일인지 확인합니다."""
     kst_now = datetime.utcnow() + timedelta(hours=9)
     date_str = kst_now.strftime('%Y-%m-%d')
     return is_holiday(date_str)
+
 
 def year_holidays(year_str):
     """지정된 연도의 모든 공휴일을 반환합니다."""
@@ -91,5 +86,4 @@ def year_holidays(year_str):
     except ValueError:
         raise ValueError("Invalid year format. Use 'YYYY'.")
 
-    all_holidays = sorted(set(get_fixed_and_specific_holidays(year) + get_lunar_holidays(year)))
-    return all_holidays
+    return get_holidays(year)

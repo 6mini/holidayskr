@@ -13,6 +13,7 @@ setup(
     license='MIT',
     install_requires=[
         'korean_lunar_calendar>=0.2.1',
+        'requests>=2.0.0',
     ],
     extras_require={
         'dev': [
