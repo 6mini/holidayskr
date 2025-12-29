@@ -87,3 +87,8 @@ def year_holidays(year_str):
         raise ValueError("Invalid year format. Use 'YYYY'.")
 
     return get_holidays(year)
+
+def reset_holiday_data():
+    """서버에서 휴일 데이터를 재 다운로드하여 최신화 합니다."""
+    global HOLIDAY_DATA
+    HOLIDAY_DATA = download_holiday_data(URL)
