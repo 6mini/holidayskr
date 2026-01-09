@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, date
 from holidayskr.core import download_holiday_data, convert_lunar_to_solar, get_holidays, is_holiday, today_is_holiday, year_holidays
 
 # 1. 공휴일 데이터 다운로드 테스트
@@ -29,7 +29,23 @@ def test_convert_lunar_to_solar(year, month, day, expected):
     ("2024-12-25", True),  # 크리스마스
     ("2024-06-06", True),  # 현충일
     ("2024-04-10", True),  # 22대 국회의원선거
-    ("2024-04-22", False)  # 공휴일이 아닌 날
+    ("2024-04-22", False),  # 공휴일이 아닌 날
+
+    (datetime(year=2024, month=1, day=1), True),  # 신정
+    (datetime(year=2024, month=2, day=10), True),  # 설날
+    (datetime(year=2024, month=5, day=1), True),  # 근로자의 날
+    (datetime(year=2024, month=12, day=25), True),  # 크리스마스
+    (datetime(year=2024, month=6, day=6), True),  # 현충일
+    (datetime(year=2024, month=4, day=10), True),  # 22대 국회의원선거
+    (datetime(year=2024, month=4, day=22), False),  # 공휴일이 아닌 날
+
+    (date(year=2024, month=1, day=1), True),  # 신정
+    (date(year=2024, month=2, day=10), True),  # 설날
+    (date(year=2024, month=5, day=1), True),  # 근로자의 날
+    (date(year=2024, month=12, day=25), True),  # 크리스마스
+    (date(year=2024, month=6, day=6), True),  # 현충일
+    (date(year=2024, month=4, day=10), True),  # 22대 국회의원선거
+    (date(year=2024, month=4, day=22), False)  # 공휴일이 아닌 날
 ])
 def test_is_holiday(date_str, expected):
     assert is_holiday(date_str) == expected, f"{date_str}의 공휴일 여부가 예상과 다릅니다."
