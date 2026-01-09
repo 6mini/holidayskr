@@ -59,12 +59,17 @@ def get_holidays(year):
     return all_holidays
 
 
-def is_holiday(date_str):
+def is_holiday(date_str_dt : str | datetime):
     """지정된 날짜가 공휴일인지 확인합니다."""
-    try:
-        date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        raise ValueError("Invalid date format. Use 'YYYY-MM-DD'.")
+    if isinstance(date_str_dt, str):
+        try:
+            date = datetime.strptime(date_str_dt, '%Y-%m-%d').date()
+        except ValueError:
+            raise ValueError("Invalid date format. Use 'YYYY-MM-DD'.")
+    elif isinstance(date_str_dt, datetime):
+        date = date_str_dt.date()
+    else:
+        raise TypeError("date_str must be a string or datetime object")
 
     year = date.year
     all_holidays = get_holidays(year)
@@ -75,8 +80,7 @@ def is_holiday(date_str):
 def today_is_holiday():
     """현재 날짜가 공휴일인지 확인합니다."""
     kst_now = datetime.utcnow() + timedelta(hours=9)
-    date_str = kst_now.strftime('%Y-%m-%d')
-    return is_holiday(date_str)
+    return is_holiday(kst_now)
 
 
 def year_holidays(year_str):
