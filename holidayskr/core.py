@@ -59,7 +59,7 @@ def get_holidays(year):
     return all_holidays
 
 
-def is_holiday(date_str_dt : str | datetime):
+def is_holiday(date_str_dt : str | datetime | date):
     """지정된 날짜가 공휴일인지 확인합니다."""
     if isinstance(date_str_dt, str):
         try:
@@ -71,7 +71,7 @@ def is_holiday(date_str_dt : str | datetime):
     elif isinstance(date_str_dt, date):
         date_obj = date_str_dt
     else:
-        raise TypeError("date_str must be a string or datetime object")
+        raise TypeError("date_str must be a string or datetime or date object")
 
     year = date_obj.year
     all_holidays = get_holidays(year)
