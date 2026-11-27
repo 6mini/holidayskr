@@ -50,6 +50,13 @@ def test_convert_lunar_to_solar(year, month, day, expected):
 def test_is_holiday(date_str, expected):
     assert is_holiday(date_str) == expected, f"{date_str}의 공휴일 여부가 예상과 다릅니다."
 
+@pytest.mark.parametrize("value", ["2024-12-25", date(2024, 12, 25), datetime(2024, 12, 25, 12)])
+def test_is_holiday_date_str_keyword(value):
+    from holidayskr import is_holiday as public_is_holiday
+
+    assert public_is_holiday(date_str=value) is True
+
+
 # 4. 연도별 공휴일 리스트 테스트
 def test_year_holidays():
     year = "2024"

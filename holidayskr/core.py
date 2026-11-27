@@ -60,8 +60,9 @@ def get_holidays(year):
     return all_holidays
 
 
-def is_holiday(date_input: Union[str, datetime, date]):
+def is_holiday(date_str: Union[str, datetime, date]):
     """지정된 날짜가 공휴일인지 확인합니다."""
+    date_input = date_str
     if isinstance(date_input, str):
         try:
             date_obj = datetime.strptime(date_input, '%Y-%m-%d').date()
